@@ -750,6 +750,31 @@ skip_unnecessary_picks () {
 		die "$(gettext "Could not skip unnecessary pick commands")"
 }
 
+remap_command () {
+	for cmd in drop edit fixup pick reword squash
+	do
+		targets="$(eval echo \$todo_cmd_${cmd})"
+		if test -n "$targets" -a -z "${targets#*$1*}"
+		then
+			echo $cmd
+			break
+		fi
+	done
+}
+
+apply_todo_commands () {
+	while read -r command rest
+	do
+		if sha1=$(git rev-parse --verify --quiet ${rest%%[	 ]*})
+		then
+			cmd=$(remap_command $sha1)
+			command=${cmd:-$command}
+		fi
+		printf '%s\n' "$command${rest:+ }$rest"
+	done <"$todo" >"$todo.new" &&
+	mv -f "$todo.new" "$todo"
+}
+
 transform_todo_ids () {
 	while read -r command rest
 	do
@@ -1279,6 +1304,7 @@ then
 fi
 
 test -s "$todo" || echo noop >> "$todo"
+test -n "$todo_targets" && apply_todo_commands "$todo"
 test -n "$autosquash" && rearrange_squash "$todo"
 test -n "$cmd" && add_exec_commands "$todo"
 

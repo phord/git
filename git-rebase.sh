@@ -17,6 +17,12 @@ q,quiet!           be quiet. implies --no-stat
 autostash          automatically stash/stash pop before and after
 fork-point         use 'merge-base --fork-point' to refine upstream
 onto=!             rebase onto given branch instead of upstream
+D,drop=!           drop the given commit
+E,edit=!           edit the given commit
+F,fixup=!          fixup the given commit into its direct parent
+P,pick=!           pick the given commit
+R,reword=!         reword the commit message of the given commit
+Q,squash=!         squash the given commit into its direct parent
 p,preserve-merges! try to recreate merges instead of ignoring them
 s,strategy=!       use the given merge strategy
 no-ff!             cherry-pick all commits, even if unchanged
@@ -214,6 +220,12 @@ run_pre_rebase_hook () {
 	fi
 }
 
+get_sha1_arg () {
+	sha1=$(peel_committish "$1") ||
+	die "$(eval_gettext "Does not point to a valid commit: \$1")"
+	echo "${sha1}"
+}
+
 test -f "$apply_dir"/applying &&
 	die "$(gettext "It looks like git-am is in progress. Cannot rebase.")"
 
@@ -257,6 +269,30 @@ do
 		;;
 	--interactive)
 		interactive_rebase=explicit
+		;;
+	--edit=*)
+		sha1=$(get_sha1_arg "${1#--edit=}")
+		todo_cmd_edit="${todo_cmd_edit} ${sha1}"
+		;;
+	--pick=*)
+		sha1=$(get_sha1_arg "${1#--pick=}")
+		todo_cmd_pick="${todo_cmd_pick} ${sha1}"
+		;;
+	--drop=*)
+		sha1=$(get_sha1_arg "${1#--drop=}")
+		todo_cmd_drop="${todo_cmd_drop} ${sha1}"
+		;;
+	--fixup=*)
+		sha1=$(get_sha1_arg "${1#--fixup=}")
+		todo_cmd_fixup="${todo_cmd_fixup} ${sha1}"
+		;;
+	--reword=*)
+		sha1=$(get_sha1_arg "${1#--reword=}")
+		todo_cmd_reword="${todo_cmd_reword} ${sha1}"
+		;;
+	--squash=*)
+		sha1=$(get_sha1_arg "${1#--squash=}")
+		todo_cmd_squash="${todo_cmd_squash} ${sha1}"
 		;;
 	--keep-empty)
 		keep_empty=yes
@@ -354,6 +390,12 @@ do
 done
 test $# -gt 2 && usage
 
+todo_targets="${todo_cmd_edit}${todo_cmd_pick}${todo_cmd_drop}"
+todo_targets="${todo_targets}${todo_cmd_fixup}${todo_cmd_reword}"
+todo_targets="${todo_targets}${todo_cmd_squash}"
+
+test -n "$todo_targets" && test -z "$interactive_rebase" && interactive_rebase=implied
+
 if test -n "$action"
 then
 	test -z "$in_progress" && die "$(gettext "No rebase in progress?")"
@@ -449,7 +491,14 @@ if test -z "$rebase_root"
 then
 	case "$#" in
 	0)
-		if ! upstream_name=$(git rev-parse --symbolic-full-name \
+		if test -n "$todo_targets"
+		then
+			base=$(git merge-base --octopus $todo_targets) ||
+			die "$(eval_gettext "unable to find merge-base for specified refs \$todo_targets")"
+			upstream_name=$(git rev-parse ${base}^) ||
+			die "$(eval_gettext "can't find parent \$base")"
+			unset fork_point
+		elif ! upstream_name=$(git rev-parse --symbolic-full-name \
 			--verify -q @{upstream} 2>/dev/null)
 		then
 			. git-parse-remote
