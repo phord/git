@@ -82,6 +82,7 @@ struct rebase_options {
 	char *gpg_sign_opt;
 	int autostash;
 	char *cmd;
+	struct sequence_edits edits;
 	int allow_empty_message;
 	int rebase_merges, rebase_cousins;
 	char *strategy, *strategy_opts;
@@ -90,11 +91,12 @@ struct rebase_options {
 	int use_legacy_rebase;
 };
 
-#define REBASE_OPTIONS_INIT {			  	\
-		.type = REBASE_UNSPECIFIED,	  	\
-		.flags = REBASE_NO_QUIET, 		\
+#define REBASE_OPTIONS_INIT {				\
+		.type = REBASE_UNSPECIFIED,		\
+		.flags = REBASE_NO_QUIET,		\
 		.git_am_opts = ARGV_ARRAY_INIT,		\
-		.git_format_patch_opt = STRBUF_INIT	\
+		.git_format_patch_opt = STRBUF_INIT,	\
+		.edits = SEQUENCE_EDITS_INIT		\
 	}
 
 static struct replay_opts get_replay_opts(const struct rebase_options *opts)
@@ -132,7 +134,10 @@ enum action {
 	ACTION_EXPAND_OIDS,
 	ACTION_CHECK_TODO_LIST,
 	ACTION_REARRANGE_SQUASH,
-	ACTION_ADD_EXEC
+	ACTION_ADD_EXEC,
+	ACTION_DROP_COMMIT,
+	ACTION_EDIT_COMMIT,
+	ACTION_REWORD_COMMIT
 };
 
 static const char *action_names[] = { "undefined",
@@ -270,6 +275,34 @@ static int get_revision_ranges(struct commit *upstream, struct commit *onto,
 	return 0;
 }
 
+static int resolve_commit_list(const struct string_list *str,
+			       struct commit_list **revs)
+{
+	struct object_id oid;
+	int i;
+	for (i = 0; i < str->nr; i++) {
+		struct commit *r;
+		const char * ref = str->items[i].string;
+		if (get_oid(ref, &oid))
+			return error(_("cannot resolve %s"), ref);
+
+		r = lookup_commit_reference(the_repository, &oid);
+		if (!r)
+			return error(_("%s is not a commit"), ref);
+
+		commit_list_insert(r, revs);
+		str->items[i].util = &(*revs)->item->object.oid;
+	}
+	return 0;
+}
+
+static int resolve_edits_commit_list(struct sequence_edits *edits)
+{
+	return resolve_commit_list(&edits->drop, &edits->revs) ||
+	       resolve_commit_list(&edits->edit, &edits->revs) ||
+	       resolve_commit_list(&edits->reword, &edits->revs);
+}
+
 static int init_basic_state(struct replay_opts *opts, const char *head_name,
 			    struct commit *onto, const char *orig_head)
 {
@@ -337,7 +370,7 @@ static int do_interactive_rebase(struct rebase_options *opts, unsigned flags)
 
 	ret = sequencer_make_script(the_repository, &todo_list.buf,
 				    make_script_args.argc, make_script_args.argv,
-				    flags);
+				    &opts->edits, flags);
 
 	if (ret)
 		error(_("could not generate todo list"));
@@ -375,6 +408,8 @@ static int run_rebase_interactive(struct rebase_options *opts,
 	flags |= opts->rebase_merges ? TODO_LIST_REBASE_MERGES : 0;
 	flags |= opts->rebase_cousins > 0 ? TODO_LIST_REBASE_COUSINS : 0;
 	flags |= command == ACTION_SHORTEN_OIDS ? TODO_LIST_SHORTEN_IDS : 0;
+
+	resolve_edits_commit_list(&opts->edits);
 
 	switch (command) {
 	case ACTION_NONE: {
@@ -482,6 +517,15 @@ int cmd_rebase__interactive(int argc, const char **argv, const char *prefix)
 		  PARSE_OPT_NONEG, parse_opt_commit, 0 },
 		{ OPTION_CALLBACK, 0, "squash-onto", &squash_onto, N_("squash-onto"),
 		  N_("squash onto"), PARSE_OPT_NONEG, parse_opt_object_id, 0 },
+		OPT_STRING_LIST(0, "drop", &opts.edits.drop, N_("revision"),
+				N_("drop the mentioned ref from the "
+				   "todo list")),
+		OPT_STRING_LIST(0, "edit", &opts.edits.edit, N_("revision"),
+				N_("edit the mentioned ref instead of "
+				   "picking it")),
+		OPT_STRING_LIST(0, "reword", &opts.edits.reword, N_("revision"),
+				N_("reword the mentioned ref instead of "
+				   "picking it")),
 		{ OPTION_CALLBACK, 0, "upstream", &opts.upstream, N_("upstream"),
 		  N_("the upstream commit"), PARSE_OPT_NONEG, parse_opt_commit,
 		  0 },
@@ -1365,7 +1409,6 @@ static int check_exec_cmd(const char *cmd)
 	return 0;
 }
 
-
 int cmd_rebase(int argc, const char **argv, const char *prefix)
 {
 	struct rebase_options options = REBASE_OPTIONS_INIT;
@@ -1458,6 +1501,16 @@ int cmd_rebase(int argc, const char **argv, const char *prefix)
 		OPT_STRING_LIST('x', "exec", &exec, N_("exec"),
 				N_("add exec lines after each commit of the "
 				   "editable list")),
+		OPT_STRING_LIST(0, "drop", &options.edits.drop, N_("revision"),
+				N_("drop the mentioned ref from the "
+				   "todo list")),
+		OPT_STRING_LIST(0, "edit", &options.edits.edit, N_("revision"),
+				N_("edit the mentioned ref instead of "
+				   "picking it")),
+		OPT_STRING_LIST(0, "reword", &options.edits.reword,
+				N_("revision"),
+				N_("reword the mentioned ref instead of "
+				   "picking it")),
 		OPT_BOOL(0, "allow-empty-message",
 			 &options.allow_empty_message,
 			 N_("allow rebasing commits with empty messages")),
@@ -2109,7 +2162,7 @@ int cmd_rebase(int argc, const char **argv, const char *prefix)
 	strbuf_addf(&msg, "%s: checkout %s",
 		    getenv(GIT_REFLOG_ACTION_ENVIRONMENT), options.onto_name);
 	if (reset_head(&options.onto->object.oid, "checkout", NULL,
-		       RESET_HEAD_DETACH | RESET_ORIG_HEAD | 
+		       RESET_HEAD_DETACH | RESET_ORIG_HEAD |
 		       RESET_HEAD_RUN_POST_CHECKOUT_HOOK,
 		       NULL, msg.buf))
 		die(_("Could not detach HEAD"));
