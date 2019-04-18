@@ -4430,6 +4430,8 @@ void free_sequence_edits(struct sequence_edits *edits)
 	string_list_clear(&edits->drop, 0);
 	string_list_clear(&edits->edit, 0);
 	string_list_clear(&edits->reword, 0);
+	string_list_clear(&edits->fixup, 0);
+	string_list_clear(&edits->squash, 0);
 	free_commit_list(edits->revs);
 }
 
@@ -4462,6 +4464,8 @@ static int check_unused_edits(const struct sequence_edits *edits)
 	return check_unused_refs(&edits->drop) ||
 		check_unused_refs(&edits->breaks) ||
 		check_unused_refs(&edits->edit) ||
+		check_unused_refs(&edits->fixup) ||
+		check_unused_refs(&edits->squash) ||
 		check_unused_refs(&edits->reword);
 }
 
@@ -4498,6 +4502,10 @@ static void add_edit_todo_inst(struct strbuf *buf, const struct object_id *oid,
 		cmd = TODO_EDIT;
 	else if (consume_oid(oid, &edits->reword))
 		cmd = TODO_REWORD;
+	else if (consume_oid(oid, &edits->fixup))
+		cmd = TODO_FIXUP;
+	else if (consume_oid(oid, &edits->squash))
+		cmd = TODO_SQUASH;
 
 	add_todo_cmd_oid(buf, cmd, flags, oid);
 }

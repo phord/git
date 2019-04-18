@@ -1517,6 +1517,12 @@ int cmd_rebase(int argc, const char **argv, const char *prefix)
 				N_("revision"),
 				N_("reword the mentioned ref instead of "
 				   "picking it")),
+		OPT_STRING_LIST(0, "fixup", &fixup, N_("revision"),
+				N_("fixup the mentioned ref instead of "
+				   "picking it")),
+		OPT_STRING_LIST(0, "squash", &squash, N_("revision"),
+				N_("squash the mentioned ref instead of "
+				   "picking it")),
 		OPT_BOOL(0, "allow-empty-message",
 			 &options.allow_empty_message,
 			 N_("allow rebasing commits with empty messages")),

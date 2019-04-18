@@ -144,8 +144,11 @@ struct sequence_edits {
 	struct string_list drop;
 	struct string_list edit;
 	struct string_list reword;
+	struct string_list fixup;
+	struct string_list squash;
 };
 #define SEQUENCE_EDITS_INIT { NULL, STRING_LIST_INIT_NODUP, \
+		STRING_LIST_INIT_NODUP, STRING_LIST_INIT_NODUP, \
 		STRING_LIST_INIT_NODUP, STRING_LIST_INIT_NODUP }
 void free_sequence_edits(struct sequence_edits *edits);
 
