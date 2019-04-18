@@ -299,6 +299,7 @@ static int resolve_commit_list(const struct string_list *str,
 static int resolve_edits_commit_list(struct sequence_edits *edits)
 {
 	return resolve_commit_list(&edits->drop, &edits->revs) ||
+	       resolve_commit_list(&edits->breaks, &edits->revs) ||
 	       resolve_commit_list(&edits->edit, &edits->revs) ||
 	       resolve_commit_list(&edits->reword, &edits->revs);
 }
@@ -517,6 +518,8 @@ int cmd_rebase__interactive(int argc, const char **argv, const char *prefix)
 		  PARSE_OPT_NONEG, parse_opt_commit, 0 },
 		{ OPTION_CALLBACK, 0, "squash-onto", &squash_onto, N_("squash-onto"),
 		  N_("squash onto"), PARSE_OPT_NONEG, parse_opt_object_id, 0 },
+		OPT_STRING_LIST(0, "break", &opts.edits.breaks, N_("revision"),
+				N_("stop before the mentioned ref")),
 		OPT_STRING_LIST(0, "drop", &opts.edits.drop, N_("revision"),
 				N_("drop the mentioned ref from the "
 				   "todo list")),
@@ -1501,6 +1504,9 @@ int cmd_rebase(int argc, const char **argv, const char *prefix)
 		OPT_STRING_LIST('x', "exec", &exec, N_("exec"),
 				N_("add exec lines after each commit of the "
 				   "editable list")),
+		OPT_STRING_LIST(0, "break", &options.edits.breaks,
+				N_("revision"),
+				N_("stop before the mentioned ref")),
 		OPT_STRING_LIST(0, "drop", &options.edits.drop, N_("revision"),
 				N_("drop the mentioned ref from the "
 				   "todo list")),

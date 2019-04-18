@@ -4426,6 +4426,7 @@ static const char *label_oid(struct object_id *oid, const char *label,
 
 void free_sequence_edits(struct sequence_edits *edits)
 {
+	string_list_clear(&edits->breaks, 0);
 	string_list_clear(&edits->drop, 0);
 	string_list_clear(&edits->edit, 0);
 	string_list_clear(&edits->reword, 0);
@@ -4459,6 +4460,7 @@ static int check_unused_refs(const struct string_list *refs)
 static int check_unused_edits(const struct sequence_edits *edits)
 {
 	return check_unused_refs(&edits->drop) ||
+		check_unused_refs(&edits->breaks) ||
 		check_unused_refs(&edits->edit) ||
 		check_unused_refs(&edits->reword);
 }
@@ -4484,6 +4486,11 @@ static void add_edit_todo_inst(struct strbuf *buf, const struct object_id *oid,
 				unsigned flags)
 {
 	enum todo_command cmd = TODO_PICK;
+
+	if (consume_oid(oid, &edits->breaks)) {
+		add_todo_cmd(buf, TODO_BREAK, flags);
+		strbuf_addstr(buf, "\n");
+	}
 
 	if (consume_oid(oid, &edits->drop))
 		cmd = TODO_DROP;
