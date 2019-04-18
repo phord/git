@@ -3914,7 +3914,7 @@ char *get_revision_mark(const struct rev_info *revs, const struct commit *commit
 		else
 			return ">";
 	} else if (revs->graph)
-		return "*";
+		return "⚙"; // lol use one of these if graph continues past us ⍿  ⎅  ⏀
 	else if (revs->cherry_mark)
 		return "+";
 	return "";

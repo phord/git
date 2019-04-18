@@ -112,12 +112,66 @@ static const char *column_get_color_code(unsigned short color)
 	return column_colors[color];
 }
 
+// Unicode characters for line-drawing: How to put these in C?
+// ╱ ╲ ╳ ─ │ ┄ ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼ ╌ ╎ ╭ ╮ ╯
+//  ╱ ╲ ╳ ─ │ ┄ ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼ ╌ ╎ ╭ ╮ ╯
+// ⎛ ⎜ ⎝ ⎞ ⎟ ⎠ ⎡ ⎢ ⎣ ⎤ ⎥ ⎦ ⎧ ⎨ ⎩ ⎪ ⎫ ⎬ ⎭ ⎮ ⎯ ⎰ ⎱ ⎸⎹  ⎺ ⎻ ⎼ ⎽ ⎾ ⎿
+// ♦ ⚙ ⚹ ☀ ☉ ☌
+//≽ʌⱷ҅ᴥⱷʌ≼
+// ││││││││
+// ︱︱︱︱︱
+//  ︳︳︳︳
+// | ‖ ⁑ ⁞  ⊪ ⊫ ⊯ ⋮  ⍿ ⎅ ⎸ ⎹ ⎾ ⎿ ⏀ ⏃ ⏆ ⏋ ⏌ ⏐ │ ┃ ┆ ┇ ┊ ┋ ├ ┝ ┠ ┣ ┤ ┥ ┨ ┫ ┼ ┽ ┾ ┿ ╂ ╉ ╊ ╋ ╎ ╏ ║ ╞ ╟ ╠ ╡ ╢ ╣ ╪ ╫ ╬ ▥ ❘ ❙ ❚ ⟊
+// ꜗ ﮼ ﮽ ﮾ ︐ ︑ ︒ ︓ ︔ ︕ ︖ ︗ ︘ ︙ ︰ ︱ ︲ ︳ ︴ ︵ ︶ ︷ ︸ ︹ ︺ ︻ ︼ ︽ ︾ ︿ ﹀ ﹁ ﹂ ﹃ ﹄ ﹇ ﹈ ｜ ￨ 𐼐 𐼗 𐼜 𐽕 𐽖 ︳
+/*
+
+ │ │ │ │ │ │ │   68731c7ec7 - Merge branch 'nd/no-more-check-racy' (4 weeks ago) <Junio C Hamano>
+⎜└┐└┐└┐└┐└┐└┐└┐└┐
+⎜ ⚙ │ │ │ │ │ │ │ c271dc28fd - (origin/nd/no-more-check-racy) Delete check-racy.c (6 weeks ago) <Nguyễn Thái Ngọc Duy>
+⚙ │ │ │ │ │ │ │ │   1c6036b69a - Merge branch 'rd/doc-hook-used-in-sample' (4 weeks ago) <Junio C Hamano>
+⎜╲ ╲ ╲ ╲ ╲ ╲ ╲ ╲ ╲
+⎜ ⚙ │ │ │ │ │ │ │ │ 3e14dd2c8e - (origin/rd/doc-hook-used-in-sample) mention use of "hooks.allownonascii" in "man githooks" (6 weeks ago) <Robert P. J. Day>
+⎜ ⎜ ⎜╱ ╱ ╱ ╱ ╱ ╱ ╱
+⎜ ⎜╱⎜ ⎜ ⎜ ⎜ ⎜ ⎜ ⎜
+
+Uses regular parentheses, mostly
+⚙  ⎜ ⎜ ⎜ ⎜ ⎜ ⎜ ⎜ ⎜   4ab0f13857 - Merge branch 'nd/diff-parseopt-2' (4 weeks ago) <Junio C Hamano>
+⎜╲ ⎝ ⎝ ⎝ ⎝ ⎝ ⎝ ⎝ ⎝
+⎜ ⚙ ⎞ ) ) ) ) ) ) ) 3e14dd2c8e - (origin/rd/doc-hook-used-in-sample) mention use of "hooks.allownonascii" in "man githooks" (6 weeks ago) <Robert P. J. Day>
+⎜ ⎜ ⎜╱ ╱ ╱ ╱ ╱ ╱ ╱
+
+This version cheats by inserting extra-wide characters that happen to cause alignment on this font:
+⎜ ⚙⎸│ │ │ │ │ │ c271dc28fd - (origin/nd/no-more-check-racy) Delete check-racy.c (6 weeks ago) <Nguyễn Thái Ngọc Duy>
+⚙ │⎸│ │ │ │ │ │ │   1c6036b69a - Merge branch 'rd/doc-hook-used-in-sample' (4 weeks ago) <Junio C Hamano>
+⎜╲ ╲ ╲ ╲ ╲ ╲ ╲ ╲ ╲
+⎜ ⚙ │ ⎸│ │ │ │ │ │ │ 3e14dd2c8e - (origin/rd/doc-hook-used-in-sample) mention use of "hooks.allownonascii" in "man githooks" (6 weeks ago) <Robert P. J. Day>
+⎜ ⎜ ⎜╱ ╱ ╱ ╱ ╱ ╱ ╱
+⎜ ⎜╱⎜⎸⎜ ⎜ ⎜ ⎜ ⎜ ⎜
+⚙ ⎜ ⎜ ⎜ ⎜ ⎜ ⎜ ⎜ ⎜   4ab0f13857 - Merge branch 'nd/diff-parseopt-2' (4 weeks ago) <Junio C Hamano>
+*/
 static void strbuf_write_column(struct strbuf *sb, const struct column *c,
 				char col_char)
 {
 	if (c->color < column_colors_max)
 		strbuf_addstr(sb, column_get_color_code(c->color));
-	strbuf_addch(sb, col_char);
+        switch (col_char) {
+                case '/':
+        		strbuf_addstr(sb, "╱");
+                        break;
+                case '\\':
+        		strbuf_addstr(sb, "╲");
+                        break;
+                case '_':
+        		strbuf_addstr(sb, "⎯");
+                        break;
+                case '|':
+        		//strbuf_addstr(sb, "⎞");
+        		strbuf_addstr(sb, "│");
+                        break;
+                default:
+                	strbuf_addch(sb, col_char);
+                        break;
+        }
 	if (c->color < column_colors_max)
 		strbuf_addstr(sb, column_get_color_code(column_colors_max));
 }
