@@ -1465,20 +1465,6 @@ int cmd_rebase(int argc, const char **argv, const char *prefix)
 		OPT_BIT(0, "no-ff", &options.flags,
 			N_("cherry-pick all commits, even if unchanged"),
 			REBASE_FORCE),
-		OPT_CMDMODE(0, "continue", &action, N_("continue"),
-			    ACTION_CONTINUE),
-		OPT_CMDMODE(0, "skip", &action,
-			    N_("skip current patch and continue"), ACTION_SKIP),
-		OPT_CMDMODE(0, "abort", &action,
-			    N_("abort and check out the original branch"),
-			    ACTION_ABORT),
-		OPT_CMDMODE(0, "quit", &action,
-			    N_("abort but keep HEAD where it is"), ACTION_QUIT),
-		OPT_CMDMODE(0, "edit-todo", &action, N_("edit the todo list "
-			    "during an interactive rebase"), ACTION_EDIT_TODO),
-		OPT_CMDMODE(0, "show-current-patch", &action,
-			    N_("show the patch file being applied or merged"),
-			    ACTION_SHOW_CURRENT_PATCH),
 		{ OPTION_CALLBACK, 'm', "merge", &options, NULL,
 			N_("use merging strategies to rebase"),
 			PARSE_OPT_NOARG | PARSE_OPT_NONEG,
@@ -1493,36 +1479,11 @@ int cmd_rebase(int argc, const char **argv, const char *prefix)
 		OPT_RERERE_AUTOUPDATE(&options.allow_rerere_autoupdate),
 		OPT_BOOL('k', "keep-empty", &options.keep_empty,
 			 N_("preserve empty commits during rebase")),
-		OPT_BOOL(0, "autosquash", &options.autosquash,
-			 N_("move commits that begin with "
-			    "squash!/fixup! under -i")),
 		{ OPTION_STRING, 'S', "gpg-sign", &gpg_sign, N_("key-id"),
 			N_("GPG-sign commits"),
 			PARSE_OPT_OPTARG, NULL, (intptr_t) "" },
 		OPT_BOOL(0, "autostash", &options.autostash,
 			 N_("automatically stash/stash pop before and after")),
-		OPT_STRING_LIST('x', "exec", &exec, N_("exec"),
-				N_("add exec lines after each commit of the "
-				   "editable list")),
-		OPT_STRING_LIST(0, "break", &options.edits.breaks,
-				N_("revision"),
-				N_("stop before the mentioned ref")),
-		OPT_STRING_LIST(0, "drop", &options.edits.drop, N_("revision"),
-				N_("drop the mentioned ref from the "
-				   "todo list")),
-		OPT_STRING_LIST(0, "edit", &options.edits.edit, N_("revision"),
-				N_("edit the mentioned ref instead of "
-				   "picking it")),
-		OPT_STRING_LIST(0, "reword", &options.edits.reword,
-				N_("revision"),
-				N_("reword the mentioned ref instead of "
-				   "picking it")),
-		OPT_STRING_LIST(0, "fixup", &fixup, N_("revision"),
-				N_("fixup the mentioned ref instead of "
-				   "picking it")),
-		OPT_STRING_LIST(0, "squash", &squash, N_("revision"),
-				N_("squash the mentioned ref instead of "
-				   "picking it")),
 		OPT_BOOL(0, "allow-empty-message",
 			 &options.allow_empty_message,
 			 N_("allow rebasing commits with empty messages")),
@@ -1543,6 +1504,46 @@ int cmd_rebase(int argc, const char **argv, const char *prefix)
 		OPT_BOOL(0, "reschedule-failed-exec",
 			 &options.reschedule_failed_exec,
 			 N_("automatically re-schedule any `exec` that fails")),
+		OPT_GROUP(N_("Modify the todo-list")),
+		OPT_BOOL(0, "autosquash", &options.autosquash,
+			 N_("move commits that begin with "
+			    "squash!/fixup! under -i")),
+		OPT_STRING_LIST('x', "exec", &exec, N_("exec"),
+				N_("add exec lines after each commit of the "
+				   "editable list")),
+		OPT_STRING_LIST(0, "break", &options.edits.breaks,
+				N_("revision"),
+				N_("stop before the mentioned ref")),
+		OPT_STRING_LIST(0, "drop", &options.edits.drop, N_("revision"),
+				N_("drop the mentioned ref from the "
+				   "todo list")),
+		OPT_STRING_LIST(0, "edit", &options.edits.edit, N_("revision"),
+				N_("edit the mentioned ref instead of "
+				   "picking it")),
+		OPT_STRING_LIST(0, "reword", &options.edits.reword,
+				N_("revision"), N_("reword the mentioned ref "
+						   "instead of picking it")),
+		OPT_STRING_LIST(0, "fixup", &options.edits.fixup,
+				N_("revision"), N_("fixup the mentioned ref "
+						   "instead of picking it")),
+		OPT_STRING_LIST(0, "squash", &options.edits.squash,
+				N_("revision"), N_("squash the mentioned ref "
+						   "instead of picking it")),
+		OPT_GROUP(N_("Control an in-progress rebase")),
+		OPT_CMDMODE(0, "continue", &action, N_("continue"),
+			    ACTION_CONTINUE),
+		OPT_CMDMODE(0, "skip", &action,
+			    N_("skip current patch and continue"), ACTION_SKIP),
+		OPT_CMDMODE(0, "abort", &action,
+			    N_("abort and check out the original branch"),
+			    ACTION_ABORT),
+		OPT_CMDMODE(0, "quit", &action,
+			    N_("abort but keep HEAD where it is"), ACTION_QUIT),
+		OPT_CMDMODE(0, "edit-todo", &action, N_("edit the todo list "
+			    "during an interactive rebase"), ACTION_EDIT_TODO),
+		OPT_CMDMODE(0, "show-current-patch", &action,
+			    N_("show the patch file being applied or merged"),
+			    ACTION_SHOW_CURRENT_PATCH),
 		OPT_END(),
 	};
 	int i;
